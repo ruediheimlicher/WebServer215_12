@@ -1,0 +1,316 @@
+**********************                    30.09.2011
+Ausgang fuer Resetter ist aktiv LO. Steuert Eingang des Tiny im Resetter.
+
+**********************
+**********************                    16.09.2011
+Relais auf Poort D5
+
+**********************
+**********************                    06.09.2011
+
+
+**********************
+**********************                    17.08.2011
+
+
+**********************
+**********************                    17.07.2011
+
+
+**********************
+**********************                    16.04.2011
+
+
+**********************
+**********************                    09.04.2011
+l 1908: out_BUFSIZE anstatt 8 als Schleifengrenze
+
+
+**********************
+**********************                    05.04.2011
+
+PORTD7 als Ausgang fuer Relais:  (PORTD7)
+PORTD4 als Eingang fuer MasterControl: MASTERCONTROLPIN (PORTD4)
+
+**********************
+**********************                    13.03.2011
+
+
+**********************
+**********************                    03.03.2011
+Echo von Heizung inbuffer 29 bis 25
+
+**********************
+**********************                    25.02.2011
+l 2055: AlarmDataString: inbuffer[30]angefügt 
+
+**********************
+**********************                    17.02.2011
+
+
+
+
+**********************
+**********************                    16.02.2011
+Von Version .70
+
+
+
+**********************
+**********************                    15.02.2011
+\0 entfernt bei Strings von SolarVarString, SolarDataString usw
+
+
+
+**********************
+**********************                    23.01.2011
+l 2125: out-startdaten auf SATATASK zurueckgesetzt anstelle von 0
+> in Master besser abzufragen
+
+
+
+**********************
+**********************                    21.01.2011
+l 2619: if-Abfrage mit status0 vor Reset von in-Startdaten gesetzt.
+Status0 soll noch auf Master uebertragen werden 
+> ohne Wirkung
+
+
+
+**********************
+**********************                    19.01.2011
+
+
+
+
+**********************
+**********************                    13.01.2011
+
+
+
+
+**********************
+**********************                    11.01.2011
+pendenzstatus eingefuehrt: Flag soll bei Status 0 eine Bestaetigung an Webinterface ausloesen
+
+
+
+**********************
+**********************                    10.01.2011
+main
+l2050 
+case STATUSTASK eingefuegt in switch out_startdaten:
+sendet bei Status 0 nochmals SPI, um Bestaetigung vom Master zu lesen. 
+
+
+
+**********************
+**********************                    08.01.2011
+main 
+l 2036
+default
+out_startdaten=DATATASK; auskommentiert , verhindert eventuell spi zur Uebertragung des EEPROM-Inhalts
+bei EEPROMREADTASK
+Zusaetzlichen delay 800 ms wieder auskommentiert
+
+
+**********************
+**********************                    06.12.2010
+Datatask an HC-Daten
+
+
+
+**********************
+**********************                    26.11.2010
+
+
+
+
+**********************
+**********************                    26.11.2010
+
+
+
+
+**********************
+**********************                    03.11.2010
+Server 210
+
+
+
+**********************
+**********************                    01.11.2010
+l 2035: case EEPROMWRITETASK: weg???
+
+
+
+**********************
+**********************                    28.10.2010
+l 1916: SendWebcount=2 adeaktiviert
+
+
+
+**********************
+**********************                    25.10.2010
+HomeDataString und HomeVarString eingefügt, für Daten 0-7
+
+
+
+**********************
+**********************                    03.09.2010
+Takt von TWI-Master 8 MHz
+
+
+
+**********************
+**********************                    09.08.2010
+SPI bei Fehler nicht weiterverarbeiten
+
+
+
+**********************
+**********************                    06.08.2010
+Ehemals Version A.5
+Versuch:
+shift-Bit direkt in cmd setzen
+In cmd2:
+EventCounter auf 2FFF setzen, um Abarbeiten von laufenden TWI-Events in HomeCentral zu ermoeglichen,
+TWI_STOP_REQUEST_BIT-Bit setzen um in naechstem Aufruf von ISR den TWI auszuschalten
+
+In ISR:
+Wenn TWI_STOP_REQUEST_BIT gesetzt ist, das TWI_WAIT_BIT setzen, um TWI auszuschalten
+
+In cmd3:
+EventCounter auf 2FFF setzen, um Abarbeiten von laufenden TWI-Events in HomeCentral zu ermoeglichen,
+TWI_WAIT_BIT zuruecksetzen
+
+
+
+
+**********************
+**********************                    05.08.2010
+Takt wieder aus Timer
+
+
+
+Neuordnung des Ablaufs
+In ISR nur Shiftbit setzen
+switch mit in_startdaten
+
+(in (cmd==6) SPI_SHIFT_BIT gesetzt, soll EEPROM-Daten von Homecentral laden)
+
+Takt aus Loopcounter. Takt mit timer gab grosse Verzoegerungen beim Lesen von EEPROM
+
+**********************
+**********************                    04.08.2010
+Abrufen von EEPROM-Daten in cmd 6
+
+
+
+**********************
+**********************                    03.08.2010
+SPI-Master installieren
+
+**********************                    18.07.2010
+out_Slave 
+l 427: Ruecksetzen von hb und lb auskommentiert
+l 243: Delay in ISR eingefügt
+
+
+**********************                    16.07.2010
+out_Slave 
+l 425: out_startdaten=0 auskommentiert
+
+**********************                    08.07.2010
+Ablauf neu
+EEPROMdaten  sofort abschicken
+l 2471 bei eeprom- den Befehl send_cmd &= ~(1<<1); // Data-bereit-bit zueruecksetzen auskommentiert
+
+TODO
+Anzahl Anfrage-Versuche von Homeserver zaehlen, bei 0 abbrechen 
+TWI_WAIT_BIT, SEND_REQUEST_BIT entfernen
+**********************
+**********************                    03.07.2010
+DATATASK an Master melden
+
+
+
+**********************
+**********************                    27.06.2010
+in-Startdaten zuruecksetzen neu zugeteilt, nicht mehr nach Beginn-Passive
+
+
+
+**********************
+**********************                    26.06.2010
+analye_get radr geändert, lcd von cmd aus beschrieben
+
+
+
+**********************
+**********************
+29.03.10
+DATATASK auf C0 gesetzt
+neu:
+SOLARTASK auf C1 gesetzt
+
+10.10.09
+23.10.09
+DATENBREITE durch aktuelleDatenbreite ersetzt.
+
+28.10.
+WebServer 366: Anzeige in Listen fuer Bytecounter
+
+**
+
+7.2.10
+
+TWI_WAIT_BIT (4) für webspistatus  eingeführt. Hindert bei EEPROM-Write-Zugriffen den Server am Laden von Daten auf HomeCentral. Sollte!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,15 @@
+*.app
+*.scpt
+Makefile
+*.eep
+*.elf
+*.hex
+*.lss
+*.map
+*.o
+*.sym
+*.xcodeproj
+build
+*.runavarice
+udpcom
+*.bat

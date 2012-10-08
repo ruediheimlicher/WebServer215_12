@@ -1,0 +1,10 @@
+WhatIsWhat.txt -- this file
+
+rfc0791.txt -- Internet Protocol RFC
+rfc793.txt -- TCP RFC
+
+For the latest circuit diagram see:
+http://tuxgraphics.org/common/src2/article06061/eth-remote-device.pdf
+
+You can get the hardware at:
+http://shop.tuxgraphics.org/electronic/eth.html
