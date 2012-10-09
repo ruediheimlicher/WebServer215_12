@@ -5,6 +5,7 @@ Makefile
 *.elf
 *.hex
 *.lss
+*.lst
 *.map
 *.o
 *.sym
@@ -13,3 +14,5 @@ build
 *.runavarice
 udpcom
 *.bat
+.dep
+websr.*

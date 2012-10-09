@@ -24,7 +24,7 @@ volatile uint8_t                    anzwertefuermittelwert =4;
 
 #define IMPULSBIT                   4 // gesetzt wenn interrupt. Nach Auswertung im Hauptprogramm wieder zurueckgesetzt
 
-#define ANZAHLWERTE                4
+#define ANZAHLWERTE                 4
 
 #define SPI_BUFSIZE							32
 
@@ -51,6 +51,9 @@ volatile uint8_t                    anzwertefuermittelwert =4;
 //**************************************************************************
 #include <avr/io.h>
 #include "lcd.h"
+
+
+
 
 
 /*
@@ -130,8 +133,9 @@ ISR (TIMER2_OVF_vect)
 ISR(TIMER2_COMPA_vect) // CTC Timer2
 {
    //OSZITOGG;
-   currentcount++;
+   // Anzahl Zaehlimpulse increment
    
+   currentcount++;
 
 }
 
@@ -142,33 +146,45 @@ ISR(TIMER2_COMPA_vect) // CTC Timer2
 
 ISR( INT0_vect )
 {
-   lcd_gotoxy(0,1);
+   //lcd_gotoxy(10,1);
 	//lcd_puts("I0:\0");
-   lcd_putint(impulscount);
+   //lcd_putint(impulscount);
    
-   if (webstatus & (1<<CURRENTSTOP)) // Webevent im Gang, Impulse ignorieren
+   /*
+   if (webstatus & (1<<CURRENTSTOP)) // Webevent im Gang, Impulse ignorieren > Nutzlos
    {
-      lcd_puts("stp\0");
+      lcd_gotoxy(10,1);
+      lcd_puts("I0:sp\0");
       return;
    }
-   else if (webstatus & (1<<CURRENTWAIT)) // Webevent fertig, neue Serie starten
+   */
+   
+   // Zaehlerstand abnehmen
+   impulszeit = currentcount;
+   // Zaehler reset
+   currentcount =0;
+   OSZILO;
+   
+   if (webstatus & (1<<CURRENTWAIT)) // Webevent fertig, neue Serie starten
    {
-      lcd_puts("I0:B\0");
+      //lcd_gotoxy(10,1);
+      //lcd_puts("I0:wt\0");
       anzimpulse=0;
+      
       webstatus &= ~(1<<CURRENTWAIT);
-      TCCR2B |= (1<<CS20); // Timer wieder starten, Impuls ist Startimpuls, nicht auswerten
-      return;
+      
+      TCCR2B |= (1<<CS20); // Timer wieder starten,
+      
+      //     return;   //Impuls ist Startimpuls, nicht auswerten > auskomm 121009.
    }
    
-   impulscount++;
-   currentstatus |= (1<< IMPULSBIT); // Bit bearbeiten in WebServer
-   {
-      OSZILO;
-      impulszeit = currentcount;
-      currentcount =0;
-      
-      PORTB ^= (1<<IMPULSPIN);
-   }
+   impulscount++; // fortlaufende Add
+   currentstatus |= (1<< IMPULSBIT); // Impuls bearbeiten in WebServer. Bit wird dort reset.
+   
+   
+   
+   
+   
    
 }	// ISR
 
@@ -183,8 +199,8 @@ void InitCurrent(void)
 	EIMSK  |= (1<<INT0);
 
 
-	lcd_gotoxy(0,0);
-	lcd_puts("C0 Ini\0");
+	//lcd_gotoxy(0,0);
+	//lcd_puts("C0 Ini\0");
    
 	sei(); // Enable global interrupts
    
