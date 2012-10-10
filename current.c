@@ -198,6 +198,12 @@ ISR( INT1_vect )
    currentcount =0;
    OSZILO;
    
+   if (webstatus & (1<<CURRENTSTOP)) // Webevent im Gang, Impulse ignorieren
+   {
+      //return;
+   }
+
+   
    if (webstatus & (1<<CURRENTWAIT)) // Webevent fertig, neue Serie starten
    {
       //lcd_gotoxy(10,1);

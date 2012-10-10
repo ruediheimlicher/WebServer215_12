@@ -1157,34 +1157,7 @@ int main(void)
 	//uint16_t Tastenprellen=0x0fff;
 	uint16_t loopcount0=0;
 	uint16_t loopcount1=0;
-	//	Zaehler fuer Wartezeit nach dem Start
-	//uint16_t startdelay0=0x001F;
-	//uint16_t startdelay1=0;
-	
-	//Zaehler fuer Zeit von (SDA || SCL = LO)
-	//uint16_t twi_LO_count0=0;
-	//uint16_t twi_LO_count1=0;
-	
-	//Zaehler fuer Zeit von (SDA && SCL = HI)
-	//uint16_t twi_HI_count0=0;
     
-	/*
-	 eepromWDT_Count0: Zaehler der wdt-Resets mit restart. 
-	 
-	 Neu:
-	 Wenn ein wdt-Reset abläuft, wird Bit 7 in eepromWDT_Count0 gesetzt. 
-	 Dadurch wartet der Prozessor mit dem Initialisieren des TWI-Slave, bis eine neue Startbedingung erscheint.
-	 Anschliessend wird das Bit 7 wieder zurückgesetzt.
-	 
-	 alt:
-	 eepromWDT_Count1: Zaehler fuer neuen wdt-Reset. Wenn wdt anspricht, wird der Zaheler erhoeht.
-	 Beim Restart wird bei anhaltendem LO auf SDA oder SCL gewartet.
-	 Wenn SCL und SDA beide HI sind, wird der Zaehler auf den Wert von eepromWDT_Count0 gesetzt 
-	 und der TWI-Slave gestartet.
-	 
-	 */
-	//uint8_t StartStatus=0x00; //	Status des Slave
-    // ETH
 	//uint16_t plen;
 	uint8_t i=0;
 	int8_t cmd;
@@ -1546,7 +1519,8 @@ int main(void)
 			
          if (webstatus & (1<<CURRENTSEND))
          {
-            //webstatus |= (1<<CURRENTSTOP);
+            
+            webstatus |= (1<<CURRENTSTOP); // Impulse blockieren
             char key1[]="pw=";
             char sstr[]="Pong";
             
@@ -1709,8 +1683,8 @@ int main(void)
 			//
          
 		SENDTCP:
-         //     OSZIHI;
-         www_server_reply(buf,dat_p); // send data
+              OSZIHI;
+         //www_server_reply(buf,dat_p); // send data
 			
 			
 		} // strom not busy
