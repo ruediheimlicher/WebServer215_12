@@ -1071,18 +1071,24 @@ void master_init(void)
 	PORTD |=(1<<RELAISPIN); //HI
 	// Eventuell: PORTD5 verwenden, Relais auf Platine 
 	
-//  DDRD &=~(1<<INT0PIN); //Pin 2 von Port D als Eingang fuer Interrupt Impuls
-//	PORTD |=(1<<INT0PIN); //HI
-   DDRD &=~(1<<INT1PIN); //Pin 3 von Port D als Eingang fuer Interrupt Impuls
-	PORTD |=(1<<INT1PIN); //HI
+   if (INTERRUPTQUELLE)
+   {
+      DDRD &=~(1<<INT1PIN); //Pin 3 von Port D als Eingang fuer Interrupt Impuls
+      PORTD |=(1<<INT1PIN); //HI
 
+   }
+   else
+   {
+      DDRD &=~(1<<INT0PIN); //Pin 2 von Port D als Eingang fuer Interrupt Impuls
+      PORTD |=(1<<INT0PIN); //HI
+   }
     
 	DDRD &= ~(1<<MASTERCONTROLPIN); // Pin 4 von PORT D als Eingang fuer MasterControl
 	PORTD |= (1<<MASTERCONTROLPIN);	// HI
 	
 	pendenzstatus=0;
    
-   DDRD |= (1<<PORTB3);
+   //DDRB |= (1<<PORTB3); // OC2A
 	
 }	
 
@@ -1342,6 +1348,7 @@ int main(void)
              }
              currentstatus++; // ein Wert mehr gemessen
              impulszeitsumme += impulszeit/ANZAHLWERTE;     // Wert aufsummieren
+             
              //lcd_gotoxy(0,1);
              //lcd_putint(currentstatus);
              //lcd_gotoxy(4,1);
@@ -1372,10 +1379,10 @@ int main(void)
 //                lcd_putc(':');
                 //char impstring[12];
                 //dtostrf(impulsmittelwert,10,2,impstring);
-               // lcd_gotoxy(0,1);
+                lcd_gotoxy(0,0);
                 //lcd_puts(impstring);
                 //lcd_putc(':');
-                //lcd_putint16(impulsmittelwert);
+                lcd_putint16(impulsmittelwert);
                 
                 /*
                  Impulsdauer: impulsmittelwert * TIMERIMPULSDAUER (10us)
@@ -1390,16 +1397,19 @@ int main(void)
                 leistung = 360.0/impulsmittelwert*100000.0;
          //       leistung = 36000000.0/impulsmittelwert;
          //     Stromzaehler
+                
+                //lcd_gotoxy(8,0);
+                //lcd_putint16(leistung);
+                //lcd_putc('*');
+                wattstunden = impulscount/10;
+                dtostrf(leistung,5,0,stromstring);
+                
                 lcd_gotoxy(0,1);
                 lcd_puts("L:\0");
                 lcd_puts(stromstring);
                 lcd_putc('W');
-                
-                
-                
-                wattstunden = impulscount/10;
-                dtostrf(leistung,4,0,stromstring);
-                
+                lcd_putc(' ');
+               
                 lcd_gotoxy(10,1);
                 lcd_putint(wattstunden/1000);
                 lcd_putc('.');

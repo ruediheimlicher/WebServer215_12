@@ -21,6 +21,7 @@ volatile uint8_t                    anzwertefuermittelwert =4;
 
 // Endwert fuer Compare-Match von Timer2
 #define TIMER2_ENDWERT					125; // 10 us
+//#define TIMER2_ENDWERT					83; // 10 us
 
 #define IMPULSBIT                   4 // gesetzt wenn interrupt. Nach Auswertung im Hauptprogramm wieder zurueckgesetzt
 
@@ -42,7 +43,8 @@ volatile uint8_t                    anzwertefuermittelwert =4;
 #define CURRENTWAIT                 2     // Bit fuer: Impulse wieder bearbeiten
 
 #define	IMPULSPIN                  0    // Pin fuer Anzeige Impuls
-
+      
+#define  INTERRUPTQUELLE            1  // INT0 oder INT1
 
 //volatile uint8_t timer2startwert=TIMER2_ENDWERT;
 
@@ -51,9 +53,6 @@ volatile uint8_t                    anzwertefuermittelwert =4;
 //**************************************************************************
 #include <avr/io.h>
 #include "lcd.h"
-
-
-
 
 
 /*
@@ -90,7 +89,7 @@ void timer2(void)
     */
 
    //TCCR2B |= (1<<CS22); // 
-   //TCCR2B |= (1<<CS21);//							
+   //TCCR2B |= (1<<CS21);//
 	TCCR2B |= (1<<CS20);
 
 
@@ -136,6 +135,7 @@ ISR(TIMER2_COMPA_vect) // CTC Timer2
    // Anzahl Zaehlimpulse increment
    
    currentcount++;
+   OCR2A = TIMER2_ENDWERT;
 
 }
 
@@ -180,11 +180,39 @@ ISR( INT0_vect )
    
    impulscount++; // fortlaufende Add
    currentstatus |= (1<< IMPULSBIT); // Impuls bearbeiten in WebServer. Bit wird dort reset.
+ 
+}	// ISR
+
+// Interrupt Routine Slave Mode (interrupt controlled)
+// Aufgerufen bei fallender Flanke an INT0
+
+ISR( INT1_vect )
+{
+   //lcd_gotoxy(10,1);
+	//lcd_puts("I1:\0");
+   //lcd_putint(impulscount);
    
+    // Zaehlerstand abnehmen
+   impulszeit = currentcount;
+   // Zaehler reset
+   currentcount =0;
+   OSZILO;
    
+   if (webstatus & (1<<CURRENTWAIT)) // Webevent fertig, neue Serie starten
+   {
+      //lcd_gotoxy(10,1);
+      //lcd_puts("I0:wt\0");
+      anzimpulse=0;
+      
+      webstatus &= ~(1<<CURRENTWAIT);
+      
+      TCCR2B |= (1<<CS20); // Timer wieder starten,
+      
+      //     return;   //Impuls ist Startimpuls, nicht auswerten > auskomm 121009.
+   }
    
-   
-   
+   impulscount++; // fortlaufende Add
+   currentstatus |= (1<< IMPULSBIT); // Impuls bearbeiten in WebServer. Bit wird dort reset.
    
 }	// ISR
 
@@ -192,12 +220,21 @@ ISR( INT0_vect )
 
 void InitCurrent(void) 
 { 
-      
-	// interrupt on INT0 pin falling edge (sensor triggered) 
+    if (INTERRUPTQUELLE )
+    {
+       // interrupt on INT1 pin falling edge (sensor triggered)
+       EICRA = (1<<ISC11) | (0<<ISC10);
+       // turn on interrupts!
+       EIMSK  |= (1<<INT1);
+
+    }
+   else
+   {
+	// interrupt on INT0 pin falling edge (sensor triggered)
 	EICRA = (1<<ISC01) | (0<<ISC00);
 	// turn on interrupts!
 	EIMSK  |= (1<<INT0);
-
+   }
 
 	//lcd_gotoxy(0,0);
 	//lcd_puts("C0 Ini\0");
