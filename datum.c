@@ -1,1 +1,1 @@
-//datum.c#define DATUM "09.10.2012"
+//datum.c#define DATUM "10.10.2012"
