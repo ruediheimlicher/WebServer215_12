@@ -243,7 +243,7 @@ void lcd_put_tempAbMinus20(uint16_t temperatur);
 //static uint8_t mymac[6] = {0x54,0x55,0x58,0x10,0x00,0x29};
 
 //RH4702 52 48 34 37 30 33
-static uint8_t mymac[6] = {0x52,0x48,0x34,0x37,0x30,0x33};
+static uint8_t mymac[6] = {0x52,0x48,0x34,0x37,0x30,0x35};
 
 // how did I get the mac addr? Translate the first 3 numbers into ascii is: TUX
 // This web server's own IP.
@@ -306,8 +306,9 @@ static volatile uint8_t cnt2step=0;
 #define CURRENTSEND                 0     // Bit fuer: Daten an Server senden
 #define CURRENTSTOP                 1     // Bit fuer: Impulse ignorieren
 #define CURRENTWAIT                 2     // Bit fuer: Impulse wieder bearbeiten
-
-
+#define CURRENTMESSUNG              3     // Bit fuer: Messen
+#define DATASEND                    4     // Bit fuer: Daten enden
+#define DATAOK                      5
 
 void str_cpy(char *ziel,char *quelle)
 {
@@ -341,6 +342,27 @@ void str_cat(char *ziel,char *quelle)
 	//printf("ziel: %s\n",ziel);
 	lz=strlen(ziel);
 	ziel[lz]='\0';
+}
+
+// http://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
+char *trimwhitespace(char *str)
+{
+   char *end;
+   
+   // Trim leading space
+   while(isspace(*str)) str++;
+   
+   if(*str == 0)  // All spaces?
+      return str;
+   
+   // Trim trailing space
+   end = str + strlen(str) - 1;
+   while(end > str && isspace(*end)) end--;
+   
+   // Write new null terminator
+   *(end+1) = 0;
+   
+   return str;
 }
 
 
@@ -1171,10 +1193,6 @@ int main(void)
 	CLKPR=0; // "no pre-scaler"
 	delay_ms(1);
 	
-	/* enable PD2/INT0, as input */
-	
-	//DDRD&= ~(1<<DDD2);				// INT0 als Eingang
-	
 	
 	i=1;
 	//	WDT_off();
@@ -1208,7 +1226,7 @@ int main(void)
 	webspistatus=0;
 	
 	//Init_SPI_Master();
-	initOSZI();
+	//initOSZI();
 	/* ************************************************************************ */
 	/* Ende Eigene Main														*/
 	/* ************************************************************************ */
@@ -1268,6 +1286,10 @@ int main(void)
    
    InitCurrent();
    timer2();
+   webstatus |= ( 1<<CURRENTMESSUNG);
+   //webstatus |= ( 1<<DATASEND);
+   //webstatus |= ( 1<<DATAOK);
+   
 #pragma  mark "while"
 	while(1)
 	{
@@ -1304,85 +1326,82 @@ int main(void)
 			
 		}
 		
-		//**	Beginn Start-Routinen Webserver	***********************
 		
 		
 		//**	Ende Start-Routinen	***********************
 		
 		
 		//**	Beginn Current-Routinen	***********************
-		
-      if (currentstatus & (1<<IMPULSBIT)) // neuer Impuls angekommen
-          {
-             if (currentstatus & 0x01)
-             {
-                lcd_gotoxy(19,1);
-                lcd_putc(' ');
-             }
-             currentstatus++; // ein Wert mehr gemessen
-             impulszeitsumme += impulszeit/ANZAHLWERTE;     // Wert aufsummieren
-             
-             //lcd_gotoxy(0,1);
-             //lcd_putint(currentstatus);
-             //lcd_gotoxy(4,1);
-             //lcd_putint(currentstatus & 0x0F);
-             //lcd_gotoxy(11,0);
-             //lcd_puthex(currentstatus);
-             //lcd_putc('*');
-             
-             if ((currentstatus & 0x0C) == ANZAHLWERTE)   // genuegend Werte
-             {
-                //lcd_gotoxy(14,0);
-                //lcd_putint((currentstatus & 0x0C));
-                //lcd_putc('*');
-                impulsmittelwert = impulszeitsumme;
-                impulszeitsumme = 0;
-                currentstatus |= 0x00;
-                currentstatus = 0x00;
-                
-                //uint8_t lb= impulsmittelwert & 0xFF;
-                //uint8_t hb = (impulsmittelwert>>8) & 0xFF;
-             
-//                lcd_gotoxy(0,1);
-//               lcd_putc('I');
-                //lcd_puts("INT0 \0");
-             
-                //lcd_puthex(hb);
-                //lcd_puthex(lb);
-//                lcd_putc(':');
-                //char impstring[12];
-                //dtostrf(impulsmittelwert,10,2,impstring);
-                lcd_gotoxy(0,0);
-                //lcd_puts(impstring);
-                //lcd_putc(':');
-                lcd_putint16(impulsmittelwert);
-                
-                /*
-                 Impulsdauer: impulsmittelwert * TIMERIMPULSDAUER (10us)
-                 Umrechnung auf ms: /1000
-                 Energie pro Zählerimpuls: 360 Ws
-                 Leistung: (Energie pro Zählerimpuls)/Impulsabstand 
-                 Umrechnung auf Sekunden: *1000
-                 Faktor: *100000
-                 */
-                
-         //     leistung = 0xFFFF/impulsmittelwert;
-                leistung = 360.0/impulsmittelwert*100000.0;
-         //       leistung = 36000000.0/impulsmittelwert;
-         //     Stromzaehler
-                
-                //lcd_gotoxy(8,0);
-                //lcd_putint16(leistung);
-                //lcd_putc('*');
-                wattstunden = impulscount/10;
-                dtostrf(leistung,5,0,stromstring);
-                
-                lcd_gotoxy(0,1);
-                lcd_puts("L:\0");
-                lcd_puts(stromstring);
-                lcd_putc('W');
-                lcd_putc(' ');
+      if (webstatus & ( 1<<CURRENTMESSUNG))
+		{
+         if (currentstatus & (1<<IMPULSBIT)) // neuer Impuls angekommen
+         {
+            if (currentstatus & 0x01)
+            {
+//               lcd_gotoxy(19,1);
+//               lcd_putc(' ');
+            }
+            currentstatus++; // ein Wert mehr gemessen
+            impulszeitsumme += impulszeit/ANZAHLWERTE;     // Wert aufsummieren
+            
+            if ((currentstatus & 0x0C) == ANZAHLWERTE)   // genuegend Werte
+            {
+//               lcd_gotoxy(0,1);
+//               lcd_puts("          \0");
+               //delay_ms(10);
+               //lcd_gotoxy(14,0);
+               //lcd_putint((currentstatus & 0x0C));
+               //lcd_putc('*');
+               impulsmittelwert = impulszeitsumme;
+               impulszeitsumme = 0;
+               currentstatus &= 0xF0;
+               //currentstatus = 0x00;
                
+               //uint8_t lb= impulsmittelwert & 0xFF;
+               //uint8_t hb = (impulsmittelwert>>8) & 0xFF;
+               
+               //                lcd_gotoxy(0,1);
+               //               lcd_putc('I');
+               //lcd_puts("INT0 \0");
+               
+               //lcd_puthex(hb);
+               //lcd_puthex(lb);
+               //                lcd_putc(':');
+               //char impstring[12];
+               //dtostrf(impulsmittelwert,10,2,impstring);
+               //lcd_gotoxy(0,0);
+               //lcd_puts(impstring);
+               //lcd_putc(':');
+               //lcd_putint16(impulsmittelwert);
+               
+               /*
+                Impulsdauer: impulsmittelwert * TIMERIMPULSDAUER (10us)
+                Umrechnung auf ms: /1000
+                Energie pro Zählerimpuls: 360 Ws
+                Leistung: (Energie pro Zählerimpuls)/Impulsabstand
+                Umrechnung auf Sekunden: *1000
+                Faktor: *100000
+                */
+               
+               //     leistung = 0xFFFF/impulsmittelwert;
+               leistung = 360.0/impulsmittelwert*100000.0;
+               //       leistung = 36000000.0/impulsmittelwert;
+               //     Stromzaehler
+               
+               //lcd_gotoxy(8,0);
+               //lcd_putint16(leistung);
+               //lcd_putc('*');
+               wattstunden = impulscount/10;
+               dtostrf(leistung,5,0,stromstring);
+               char* newstromstring = trimwhitespace(stromstring);
+               
+               lcd_gotoxy(0,1);
+               lcd_puts("L:\0");
+               lcd_puts(newstromstring);
+               lcd_putc('W');
+               lcd_putc(' ');
+               
+               /*
                 lcd_gotoxy(10,1);
                 lcd_putint(wattstunden/1000);
                 lcd_putc('.');
@@ -1390,172 +1409,128 @@ int main(void)
                 lcd_putc('W');
                 lcd_putc('h');
                 //lcd_putc(':');
-                
-                
-                //lcd_putc('*');
-                //lcd_puts(stromstring);
-                //lcd_putc('*');
+                */
+               
+               //lcd_putc('*');
+               //lcd_puts(stromstring);
+               //lcd_putc('*');
                //lcd_putc(' ');
-                //lcd_putint16(leistung);
-                //lcd_putc(' ');
-                /*
+               //lcd_putint16(leistung);
+               //lcd_putc(' ');
+               /*
                 if (abs(leistung-lastleistung) > 10)
-                    {
-                       lastcounter++;
-                       
-                        if (lastcounter>3)
-                           {
-                              char diff[10];
-                              dtostrf(leistung-lastleistung,7,2,diff);
-                              lcd_gotoxy(10,1);
-                              lcd_putc('D');
-                              lcd_putc(':');
-                              lcd_puts(diff);
-                              lastleistung = leistung;
-                           }
-                    }
-                 else
-                 {
-                 lastcounter=0;
-                 }
-                 */
+                {
+                lastcounter++;
                 
-                //anzeigewert = 0xFF/0x8000*leistung; // 0x8000/0x255 = 0x81
-                anzeigewert = leistung/0x20;
-                //lcd_putint(anzeigewert);
-                //lcd_putc('*');
-                
+                if (lastcounter>3)
+                {
+                char diff[10];
+                dtostrf(leistung-lastleistung,7,2,diff);
+                lcd_gotoxy(10,1);
+                lcd_putc('D');
+                lcd_putc(':');
+                lcd_puts(diff);
+                lastleistung = leistung;
+                }
+                }
+                else
+                {
+                lastcounter=0;
+                }
+                */
+               
+               //anzeigewert = 0xFF/0x8000*leistung; // 0x8000/0x255 = 0x81
+               anzeigewert = leistung/0x20;
+               //lcd_putint(anzeigewert);
+               //lcd_putc('*');
+               
                OCR0A = anzeigewert;
                 
+               //lcd_putint(anzeigewert);
+               
+               // webstatus |= (1<<CURRENTSEND);
+               
+               webstatus |= (1<<CURRENTSTOP); // Impulse blockieren
+               
+               // sendstring vorbereiten
+               
+               char key1[]="pw=";
+               char sstr[]="Pong";
+               
+               
+               strcpy(CurrentDataString,key1);
+               strcat(CurrentDataString,sstr);
+               
+               strcat(CurrentDataString,"&strom=");
+               char webstromstring[10]={};
+               urlencode(newstromstring,webstromstring);
+               //strcat(CurrentDataString,stromstring);
+               strcat(CurrentDataString,webstromstring);
+               
+               /*
+                char d[5]={};
+                //char dd[4]={};
+                strcat(CurrentDataString,"&c0=");
+                itoa(hb++,d,16);
+                strcat(CurrentDataString,d);
                 
-                
-                
-                //lcd_putint(anzeigewert);
-                
-                webstatus |= (1<<CURRENTSEND);
-                
-                
-             
-             } // genuegend Werte
-             else
-             {
-                //lcd_gotoxy(8,1);
-                //lcd_puts("    \0");
+                strcat(CurrentDataString,"&c1=");
+                itoa(lb++,d,16);
+                strcat(CurrentDataString,d);
+                */
+               
+               
+               //lcd_gotoxy(0,1);
+               //lcd_puts(CurrentDataString);
+               webstatus &= ~(1<<CURRENTSEND);
+               
+               // Zaehler fuer senden incr
+               sendWebCount++;
+ //              lcd_gotoxy(9,1);
+  //             lcd_putint2(sendWebCount);
+               
+            	if (sendWebCount == 4)
+               {
+                  //start_web_client=1;
+                  sendWebCount=0;
+                  webstatus &= ~(1<< CURRENTMESSUNG);
+                  webstatus |= (1<< DATASEND);
+                  webstatus |= (1<< DATAOK);
+                  
+                  //
+                  
+                  //
+               }
 
-             }
-             
-             impulszeit=0;
-             currentstatus &= ~(1<<IMPULSBIT);
-             
             
-             
-          
-          }
-		//**    End Current-Routinen*************************
-		
-		
-		
-		
-		// +++Tastenabfrage+++++++++++++++++++++++++++++++++++++++
-		/*
-		 if (!(PINB & (1<<PORTB0))) // Taste 0
-		 {
-		 //lcd_gotoxy(12,1);
-		 //lcd_puts("P0 Down\0");
-		 
-		 if (! (TastenStatus & (1<<PORTB0))) //Taste 0 war nich nicht gedrueckt
-		 {
-		 TastenStatus |= (1<<PORTB0);
-		 Tastencount=0;
-		 //lcd_gotoxy(0,1);
-		 //lcd_puts("P0 \0");
-		 //lcd_putint(TastenStatus);
-		 //delay_ms(800);
-		 }
-		 else
-		 {
-		 
-		 
-		 Tastencount ++;
-		 //lcd_gotoxy(7,1);
-		 //lcd_puts("TC \0");
-		 //lcd_putint(Tastencount);
-		 
-		 if (Tastencount >= Tastenprellen)
-		 {
-		 Tastencount=0;
-		 TastenStatus &= ~(1<<PORTB0);
-		 if (!(webspistatus & (1<< SEND_REQUEST_BIT)))
-		 {
-		 //			_delay_ms(2);
-		 webspistatus |= (1<< SEND_REQUEST_BIT);
-		 }
-		 
-		 }
-		 }//else
-		 
-		 }	// Taste 0
-		 */
-		
-		// ++++++++++++++++++++++++++++++++++++++++++
-		
-		webspistatus=0;
-		//sendWebCount=0;
-		rxdata=0;
-		
-		if (sendWebCount >8)
-		{
-			//start_web_client=1;
-			sendWebCount=0;
-		}
-		
-      
-		//		sendWebCount=0;
-	
-      // strom busy?
-		
-		{
-#pragma mark packetloop
-			
-         if (webstatus & (1<<CURRENTSEND))
-         {
+            } // genuegend Werte
+            else
+            {
+               //lcd_gotoxy(8,1);
+               //lcd_puts("    \0");
+               
+            }
             
-            webstatus |= (1<<CURRENTSTOP); // Impulse blockieren
-            char key1[]="pw=";
-            char sstr[]="Pong";
+            impulszeit=0;
+            currentstatus &= ~(1<<IMPULSBIT);
             
-            
-            strcpy(CurrentDataString,key1);
-            strcat(CurrentDataString,sstr);
-            
-            strcat(CurrentDataString,"&strom=");
-            char webstromstring[10]={};
-            urlencode(stromstring,webstromstring);
-            //strcat(CurrentDataString,stromstring);
-            strcat(CurrentDataString,webstromstring);
-            
-            /*
-             char d[5]={};
-             //char dd[4]={};
-             strcat(CurrentDataString,"&c0=");
-             itoa(hb++,d,16);
-             strcat(CurrentDataString,d);
-             
-             strcat(CurrentDataString,"&c1=");
-             itoa(lb++,d,16);
-             strcat(CurrentDataString,d);
-             */
-            
-            sendWebCount++;
-            //lcd_gotoxy(0,1);
-            //lcd_puts(CurrentDataString);
-            webstatus &= ~(1<<CURRENTSEND);
-         }
+         } // end IMPULSBIT
          
-			// **	Beginn Ethernet-Routinen	***********************
+      }
+		//**    End Current-Routinen*************************
+
+      // strom busy?
+      
+		if (webstatus & (1<< DATASEND))
+      {
+#pragma mark packetloop
 			
 			// handle ping and wait for a tcp packet
 			
+         
+         // **	Beginn Ethernet-Routinen	***********************
+         
+         
          cli();
 			
 			dat_p=packetloop_icmp_tcp(buf,enc28j60PacketReceive(BUFFER_SIZE, buf));
@@ -1574,9 +1549,8 @@ int main(void)
                sec=0;
                //lcd_gotoxy(0,0);
                //lcd_puts("    \0");
-               lcd_clr_line(1);
                lcd_gotoxy(12,0);
-               lcd_puts("i-ping ok\0");
+               lcd_puts("ping ok\0");
                lcd_clr_line(1);
                delay_ms(100);
                start_web_client=2; // nur erstes ping beantworten. start_web_client wird in pl-send auf 0 gesetzt
@@ -1591,25 +1565,38 @@ int main(void)
                //delay_ms(1000);
                
             }
-            if (sendWebCount == 1) // StromDaten an HomeServer schicken
+            
+            if (webstatus & (1<<DATAOK)) // StromDaten an HomeServer schicken
             {
-               // lcd_gotoxy(0,1);
-               // lcd_puts(CurrentDataString);
+               lcd_gotoxy(0,0);
+               lcd_puts(CurrentDataString);
+               //lcd_puts(WEBSERVER_VHOST);
+               lcd_putc('*');
                
                start_web_client=2;
                web_client_attempts++;
-               
+               char* teststring = "pw=Pong&strom=360\0";
                //strcat(SolarVarString,SolarDataString);
                start_web_client=0;
                
                // Daten an strom.pl schicken
-               client_browse_url(PSTR("/cgi-bin/strom.pl?"),CurrentDataString,PSTR(WEBSERVER_VHOST),&strom_browserresult_callback);
+               //client_browse_url(PSTR("/cgi-bin/strom.pl?"),CurrentDataString,PSTR(WEBSERVER_VHOST),&strom_browserresult_callback);
+               client_browse_url(PSTR("/cgi-bin/strom.pl?"),teststring,PSTR(WEBSERVER_VHOST),&strom_browserresult_callback);
                
-               sendWebCount++;
+              // webstatus &= ~(1<< DATASEND);
+               //webstatus |= (1<< CURRENTMESSUNG);
+
+               //sendWebCount++;
                
                // Daten senden
                //www_server_reply(buf,dat_p); // send data
                
+               //if (sendWebCount>4)
+               {
+               webstatus &= ~(1<<DATAOK);
+               
+               }
+               webstatus = (1<< CURRENTMESSUNG);
             }
             continue;
          } // dat_p=0
@@ -1683,8 +1670,10 @@ int main(void)
 			//
          
 		SENDTCP:
+         
+         
               OSZIHI;
-         //www_server_reply(buf,dat_p); // send data
+         www_server_reply(buf,dat_p); // send data
 			
 			
 		} // strom not busy
