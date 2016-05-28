@@ -258,10 +258,11 @@ static uint8_t myip[4] = {192,168,1,215};
 
 
 // ruediheimlicher
-static uint8_t websrvip[4] = {193,17,85,42}; // ruediheimlicher 193.17.85.42
+//static uint8_t websrvip[4] = {213,188,35,156}; // 30.7.2014 msh
+//static uint8_t websrvip[4] = {193,17,85,42}; // ruediheimlicher 193.17.85.42 nine
+static uint8_t websrvip[4] = {217,26,52,16};//        217.26.52.16  24.03.2015 hostpoint
 
 // The name of the virtual host which you want to contact at websrvip (hostname of the first portion of the URL):
-
 
 #define WEBSERVER_VHOST "www.ruediheimlicher.ch"
 
@@ -282,8 +283,12 @@ static uint8_t gwip[4] = {192,168,1,1};// Rueti
 
 static char urlvarstr[21];
 // listen port for tcp/www:
-#define MYWWWPORT 81 
+#define MYWWWPORT 1401
 //
+
+
+
+
 
 #define BUFFER_SIZE 800
 
@@ -1070,7 +1075,7 @@ uint16_t print_webpage_status(uint8_t *buf)
 	//
 	
 	//
-	plen=fill_tcp_data_p(buf,plen,PSTR("<p>  HomeCurrent<br>  Falkenstrasse 20<br>  8630 Rueti"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("<p>  HomeTest<br>  Falkenstrasse 20<br>  8630 Rueti"));
 	plen=fill_tcp_data_p(buf,plen,PSTR("<hr><h4><font color=\"#00FF00\">Status</h4></font></p>"));
 	
 	
@@ -1345,7 +1350,7 @@ int main(void)
    uint8_t paketcounter = 0;
    uint16_t sendcounter = 0;
    
-#pragma  mark "while"
+#pragma  mark while
 	while(1)
 	{
 		sei();
@@ -1359,7 +1364,7 @@ int main(void)
 			//waitspi();
 			//StartTransfer(loopcount1,1);
 			//sendcounter++;
-			if (loopcount1 >= 0xFFFE)
+			if (loopcount1 >= 0x0FFE)
 			{
 				
 				loopcount1 = 0;
@@ -1648,7 +1653,7 @@ int main(void)
                
                // Daten an strom.pl schicken
                //client_browse_url(PSTR("/cgi-bin/strom.pl?"),CurrentDataString,PSTR(WEBSERVER_VHOST),&strom_browserresult_callback);
-               client_browse_url(PSTR("/cgi-bin/strom.pl?"),teststring,PSTR(WEBSERVER_VHOST),&strom_browserresult_callback);
+               client_browse_url((char*)PSTR("/cgi-bin/zeittest.pl?"),teststring,(char*)PSTR(WEBSERVER_VHOST),&strom_browserresult_callback);
                
  
               
@@ -1721,7 +1726,7 @@ int main(void)
 				//lcd_putc(' ');
 				if (cmd == 1)
 				{
-					dat_p = print_webpage_confirm(buf);
+//					dat_p = print_webpage_confirm(buf);
 				}
 				else if (cmd == 2)	// TWI > OFF
 				{
