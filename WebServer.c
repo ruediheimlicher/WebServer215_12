@@ -1364,6 +1364,7 @@ int main(void)
 			//waitspi();
 			//StartTransfer(loopcount1,1);
 			//sendcounter++;
+         
 			if (loopcount1 >= 0x0FFE)
 			{
 				

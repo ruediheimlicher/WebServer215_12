@@ -211,7 +211,6 @@ ISR( INT1_vect )
       anzimpulse=0;
       
       webstatus &= ~(1<<CURRENTWAIT);
-      
       TCCR2B |= (1<<CS20); // Timer wieder starten,
       
       //     return;   //Impuls ist Startimpuls, nicht auswerten > auskomm 121009.
